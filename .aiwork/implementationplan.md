@@ -79,18 +79,26 @@ This implementation plan outlines the systematic development of a PowerShell mod
 - **Testing**: Test with various directory structures and filter patterns ✓
 - **Validation**: Correctly identifies and filters image files ✓
 
-### Task 6: Core Image Optimization Engine
-- [ ] **Objective**: Implement the main image optimization logic with support for multiple processing engines
+### Task 6: Core Image Optimization Engine ✅
+- [x] **Objective**: Implement the main image optimization logic with support for multiple processing engines
 - **Prompt**: Create Invoke-ImageOptimization function that handles format-specific optimization using ImageMagick or .NET fallback
 - **Acceptance Criteria**:
-  - Supports JPEG, PNG, WebP, AVIF optimization
-  - Implements quality settings per format
-  - Handles metadata removal and progressive encoding
-  - Provides fallback processing when primary engine unavailable
-  - Maintains aspect ratio during resizing
+  - [x] Supports JPEG, PNG, WebP, AVIF optimization
+  - [x] Implements quality settings per format
+  - [x] Handles metadata removal and progressive encoding
+  - [x] Provides fallback processing when primary engine unavailable
+  - [x] Maintains aspect ratio during resizing
 - **Dependencies**: Tasks 3, 4
-- **Testing**: Test optimization with various image formats and quality settings
-- **Validation**: Optimized images meet quality and size requirements
+- **Testing**: ✅ Test optimization with various image formats and quality settings
+- **Validation**: ✅ Optimized images meet quality and size requirements
+- **Implementation Notes**:
+  - ✅ Created `WebImageOptimizer/Private/Invoke-ImageOptimization.ps1` with comprehensive optimization engine
+  - ✅ Implemented using TDD/BDD methodology with 19 passing tests (100% success rate)
+  - ✅ Created `Tests/TestDataLibraries/ImageOptimization.TestDataLibrary.ps1` for centralized test data
+  - ✅ Created `Tests/Unit/WebImageOptimizer.ImageOptimization.Tests.ps1` with comprehensive BDD scenarios
+  - ✅ Supports format-specific optimization with proper configuration validation
+  - ✅ Includes comprehensive error handling, logging, and aspect ratio preservation
+  - ✅ Uses Test Data Library pattern following established testing conventions
 
 ### Task 7: Backup and File Management System
 - [ ] **Objective**: Implement secure backup creation and file management operations
