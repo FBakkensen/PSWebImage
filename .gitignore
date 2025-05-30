@@ -1,0 +1,288 @@
+# PowerShell Module .gitignore
+
+# ===============================
+# PowerShell specific files
+# ===============================
+
+# PowerShell execution policy files
+*.ps1xml.bak
+
+# PowerShell session state files
+*.pssc
+*.ps1xml
+
+# PowerShell transcript files
+PowerShell_transcript*.txt
+transcript*.txt
+
+# PowerShell ISE backup files
+*.ps1.bak
+*.psm1.bak
+*.psd1.bak
+
+# PowerShell help files (generated)
+*-help.xml
+help.xml
+
+# PowerShell module build artifacts
+*.nupkg
+Release/
+Build/
+Artifacts/
+Output/
+
+# PowerShell Gallery package files
+*.nupkg
+
+# ===============================
+# Development and Testing
+# ===============================
+
+# Test results
+TestResults/
+*.trx
+*.coverage
+*.coveragexml
+TestResult.xml
+
+# Pester test results
+TestResults.xml
+*-TestResults.xml
+coverage.xml
+
+# PowerShell analysis results
+PSScriptAnalyzerSettings.psd1.bak
+
+# ===============================
+# IDE and Editor files
+# ===============================
+
+# Visual Studio Code
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.sln.docstates
+*.userprefs
+
+# JetBrains IDEs
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# PowerShell ISE
+*.ps1.bak
+
+# ===============================
+# Logs and temporary files
+# ===============================
+
+# Log files
+*.log
+logs/
+Log/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+
+# Windows thumbnail cache files
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+
+# Dump files
+*.stackdump
+
+# Folder config file
+[Dd]esktop.ini
+
+# Recycle Bin used on file shares
+$RECYCLE.BIN/
+
+# ===============================
+# Package managers and dependencies
+# ===============================
+
+# NuGet
+packages/
+*.nupkg
+nuget.exe
+
+# Chocolatey
+tools/
+
+# PSDepend cache
+.psdepend/
+
+# PowerShell Gallery downloads
+PSGallery/
+
+# ===============================
+# Documentation and Help
+# ===============================
+
+# Generated documentation
+docs/_site/
+docs/.jekyll-cache/
+docs/.jekyll-metadata
+
+# Markdown preview temp files
+*.md.html
+
+# ===============================
+# CI/CD and Build systems
+# ===============================
+
+# Azure DevOps
+.azure-pipelines/
+
+# GitHub Actions artifacts
+.github/workflows/artifacts/
+
+# AppVeyor
+.appveyor.yml.bak
+
+# Jenkins
+.jenkins/
+
+# ===============================
+# Security and secrets
+# ===============================
+
+# Credential files
+*.credential
+*.cred
+credentials.xml
+*credential*.xml
+
+# Secret files
+secrets.json
+*.secret
+.secrets/
+
+# API keys and tokens
+*.key
+*.token
+apikey.txt
+
+# Certificates
+*.pfx
+*.p12
+*.cer
+*.crt
+*.pem
+
+# ===============================
+# Module specific
+# ===============================
+
+# Module version backup files
+*_old.psd1
+*_backup.psd1
+
+# Module installation temp files
+InstallModule/
+
+# Dependencies cache
+Dependencies/cache/
+Dependencies/temp/
+
+# Configuration backups
+Config/*.bak
+Config/backup/
+
+# ===============================
+# Development tools
+# ===============================
+
+# Profiling results
+*.psprofile
+
+# Debug files
+*.pdb
+
+# Performance counters
+*.perfcounter
+
+# Memory dumps
+*.dmp
+
+# ===============================
+# OS specific
+# ===============================
+
+# Windows
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+
+# Windows shortcuts
+*.lnk
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Linux
+*~
+
+# ===============================
+# Misc
+# ===============================
+
+# Archives
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# Backup files
+*.backup
+*.old
+*~
+
+# Swap files
+*.swp
+*.swo
+
+# Node.js (if using for documentation or tools)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Python (if using for development tools)
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# ===============================
+# Project specific exclusions
+# ===============================
+
+# Add any project-specific files here
+# Example:
+# MySpecificConfig.json
+# TempProcessingFiles/
