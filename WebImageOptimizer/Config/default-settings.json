@@ -1,0 +1,78 @@
+{
+  "defaultSettings": {
+    "jpeg": {
+      "quality": 85,
+      "progressive": true,
+      "stripMetadata": true,
+      "optimize": true
+    },
+    "png": {
+      "compression": 6,
+      "stripMetadata": true,
+      "optimize": true,
+      "interlace": false
+    },
+    "webp": {
+      "quality": 90,
+      "method": 6,
+      "stripMetadata": true,
+      "lossless": false
+    },
+    "avif": {
+      "quality": 85,
+      "speed": 6,
+      "stripMetadata": true,
+      "lossless": false
+    }
+  },
+  "processing": {
+    "maxThreads": 4,
+    "maxDimensions": {
+      "width": 2048,
+      "height": 2048
+    },
+    "minFileSizeKB": 10,
+    "enableParallelProcessing": true,
+    "processingTimeout": 300,
+    "retryAttempts": 3
+  },
+  "output": {
+    "preserveStructure": true,
+    "namingPattern": "{name}_optimized.{ext}",
+    "createBackup": false,
+    "backupDirectory": "backup",
+    "overwriteOriginal": false,
+    "outputDirectory": null
+  },
+  "formats": {
+    "supportedInputFormats": [
+      "jpeg",
+      "jpg",
+      "png",
+      "gif",
+      "bmp",
+      "tiff",
+      "webp"
+    ],
+    "supportedOutputFormats": [
+      "jpeg",
+      "png",
+      "webp",
+      "avif"
+    ],
+    "defaultOutputFormat": "auto"
+  },
+  "logging": {
+    "verbosity": "Information",
+    "logToFile": false,
+    "logFilePath": null,
+    "includeTimestamp": true,
+    "maxLogFileSize": "10MB"
+  },
+  "validation": {
+    "validateInputFiles": true,
+    "skipCorruptedFiles": true,
+    "validateOutputFiles": true,
+    "checksumValidation": false
+  }
+}

@@ -15,7 +15,7 @@ RootModule = 'WebImageOptimizer.psm1'
 ModuleVersion = '1.0.0'
 
 # Supported PSEditions
-# CompatiblePSEditions = @()
+CompatiblePSEditions = @('Core')
 
 # ID used to uniquely identify this module
 GUID = '20d76325-18d8-4f34-aec1-860821a1d803'
@@ -24,10 +24,10 @@ GUID = '20d76325-18d8-4f34-aec1-860821a1d803'
 Author = 'PowerShell Web Image Optimizer Team'
 
 # Company or vendor of this module
-CompanyName = 'Unknown'
+CompanyName = 'PowerShell Web Image Optimizer Team'
 
 # Copyright statement for this module
-Copyright = '(c) PowerShell Web Image Optimizer Team. All rights reserved.'
+Copyright = '(c) 2025 PowerShell Web Image Optimizer Team. All rights reserved.'
 
 # Description of the functionality provided by this module
 Description = 'A PowerShell module for optimizing images for web usage with batch processing capabilities'
@@ -69,16 +69,16 @@ PowerShellVersion = '7.0'
 # NestedModules = @()
 
 # Functions to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no functions to export.
-FunctionsToExport = '*'
+FunctionsToExport = @('Optimize-WebImages')
 
 # Cmdlets to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no cmdlets to export.
-CmdletsToExport = '*'
+CmdletsToExport = @()
 
 # Variables to export from this module
-VariablesToExport = '*'
+VariablesToExport = @()
 
 # Aliases to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no aliases to export.
-AliasesToExport = '*'
+AliasesToExport = @()
 
 # DSC resources to export from this module
 # DscResourcesToExport = @()
@@ -95,19 +95,19 @@ PrivateData = @{
     PSData = @{
 
         # Tags applied to this module. These help with module discovery in online galleries.
-        # Tags = @()
+        Tags = @('Image', 'Web', 'Optimization', 'Batch', 'Processing', 'JPEG', 'PNG', 'WebP', 'AVIF', 'ImageMagick')
 
         # A URL to the license for this module.
-        # LicenseUri = ''
+        LicenseUri = 'https://github.com/PowerShellWebImageOptimizer/PSWebImage/blob/main/LICENSE'
 
         # A URL to the main website for this project.
-        # ProjectUri = ''
+        ProjectUri = 'https://github.com/PowerShellWebImageOptimizer/PSWebImage'
 
         # A URL to an icon representing this module.
         # IconUri = ''
 
         # ReleaseNotes of this module
-        # ReleaseNotes = ''
+        ReleaseNotes = 'Initial release of PowerShell Web Image Optimizer module with support for batch image optimization, multiple formats (JPEG, PNG, WebP, AVIF), and configurable quality settings.'
 
         # Prerelease string of this module
         # Prerelease = ''
