@@ -6,12 +6,13 @@
 # Module initialization and setup
 Write-Verbose "Loading WebImageOptimizer module..."
 
-# Get all public and private function files
+# Get all public, private, and dependency function files
 $PublicFunctions = @(Get-ChildItem -Path $PSScriptRoot\Public\*.ps1 -ErrorAction SilentlyContinue)
 $PrivateFunctions = @(Get-ChildItem -Path $PSScriptRoot\Private\*.ps1 -ErrorAction SilentlyContinue)
+$DependencyFunctions = @(Get-ChildItem -Path $PSScriptRoot\Dependencies\*.ps1 -ErrorAction SilentlyContinue)
 
 # Dot source the files
-foreach ($Import in @($PublicFunctions + $PrivateFunctions)) {
+foreach ($Import in @($PublicFunctions + $PrivateFunctions + $DependencyFunctions)) {
     try {
         . $Import.FullName
         Write-Verbose "Imported function: $($Import.BaseName)"

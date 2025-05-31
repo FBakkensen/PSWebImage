@@ -173,7 +173,18 @@ function Invoke-ParallelImageProcessing {
             # Current file being processed
             $currentFile = $_
             $fileName = $currentFile.Name
-            $outputFilePath = Join-Path $outputPath $fileName
+
+            # Use RelativePath if available to preserve directory structure
+            if ($currentFile.RelativePath) {
+                $outputFilePath = Join-Path $outputPath $currentFile.RelativePath
+                # Ensure the output directory exists
+                $outputDir = Split-Path $outputFilePath -Parent
+                if (-not (Test-Path $outputDir)) {
+                    New-Item -Path $outputDir -ItemType Directory -Force | Out-Null
+                }
+            } else {
+                $outputFilePath = Join-Path $outputPath $fileName
+            }
 
             try {
                 Write-Verbose "Processing $fileName in parallel thread"

@@ -89,11 +89,21 @@ function Optimize-WebImages {
             FilesSkipped = 0
             ErrorCount = 0
             ProcessingTime = [timespan]::Zero
+            TotalProcessingTime = [timespan]::Zero
             ConfigurationUsed = $null
             BackupCreated = $false
             BackupPath = $null
             Summary = $null
             Errors = @()
+            ProcessingEngine = "Auto"
+            Platform = if ($PSVersionTable.PSVersion.Major -ge 6) {
+                if ($IsWindows) { "Windows" }
+                elseif ($IsLinux) { "Linux" }
+                elseif ($IsMacOS) { "macOS" }
+                else { "Unknown" }
+            } else { "Windows" }
+            PowerShellVersion = $PSVersionTable.PSVersion.ToString()
+            ProcessingMode = "Sequential"
         }
     }
 
@@ -111,7 +121,7 @@ function Optimize-WebImages {
             # Step 2: Load and merge configuration
             Write-Verbose "Loading configuration"
             try {
-                $defaultConfig = Get-Configuration
+                $defaultConfig = Get-DefaultConfiguration
                 $parameterConfig = @{}
 
                 if ($Settings) {
@@ -146,11 +156,13 @@ function Optimize-WebImages {
             try {
                 $dependencyInfo = Test-ImageProcessingDependencies
                 $processingEngine = $dependencyInfo.RecommendedEngine
+                $result.ProcessingEngine = $processingEngine
                 Write-Verbose "Using processing engine: $processingEngine"
             }
             catch {
                 Write-Warning "Dependency detection failed, using fallback: $($_.Exception.Message)"
                 $processingEngine = "Auto"
+                $result.ProcessingEngine = $processingEngine
             }
 
             # Step 4: Discover image files
@@ -172,19 +184,34 @@ function Optimize-WebImages {
 
             if (-not $imageFiles -or $imageFiles.Count -eq 0) {
                 Write-Warning "No image files found in the specified path"
+                $result.Success = $true  # Not an error, just no files to process
                 $result.Summary = "No image files found to process"
-                return $result
+                # Don't return here - let it fall through to the end block
             }
-
-            Write-Verbose "Found $($imageFiles.Count) image files to process"
+            else {
+                Write-Verbose "Found $($imageFiles.Count) image files to process"
 
             # Convert FileInfo objects to the format expected by parallel processing
             $imageFileObjects = $imageFiles | ForEach-Object {
+                # Calculate relative path from input directory to preserve structure
+                try {
+                    # Use PowerShell 7's GetRelativePath for robust path calculation
+                    $relativePath = [System.IO.Path]::GetRelativePath($resolvedInputPath, $_.FullName)
+                } catch {
+                    # Fallback for older PowerShell versions or path issues
+                    $inputPathString = $resolvedInputPath.ToString().TrimEnd('\', '/')
+                    if ($_.FullName.StartsWith($inputPathString)) {
+                        $relativePath = $_.FullName.Substring($inputPathString.Length).TrimStart('\', '/')
+                    } else {
+                        $relativePath = $_.Name
+                    }
+                }
                 [PSCustomObject]@{
                     FullName = $_.FullName
                     Name = $_.Name
                     Extension = $_.Extension
                     Length = $_.Length
+                    RelativePath = $relativePath
                 }
             }
 
@@ -233,6 +260,7 @@ function Optimize-WebImages {
                 # Add parallel processing settings if enabled
                 if ($mergedConfig.processing.enableParallelProcessing) {
                     $processingParams.ThrottleLimit = $mergedConfig.processing.maxThreads
+                    $result.ProcessingMode = "Parallel"
                 }
 
                 # Execute processing
@@ -258,7 +286,7 @@ function Optimize-WebImages {
                 $result.Success = $true
                 $result.FilesProcessed = 0
                 $result.Summary = "WhatIf: Would process $($imageFiles.Count) image files"
-                return $result
+                # Don't return here - let it fall through to the end block
             }
 
             # Step 8: Generate summary report
@@ -288,6 +316,7 @@ function Optimize-WebImages {
                 $result.Summary = "Processing completed but summary generation failed"
             }
 
+            } # End of else block for processing files
         }
         catch {
             $result.Success = $false
@@ -297,6 +326,7 @@ function Optimize-WebImages {
         }
         finally {
             $result.ProcessingTime = (Get-Date) - $startTime
+            $result.TotalProcessingTime = $result.ProcessingTime
             Write-Verbose "Total processing time: $($result.ProcessingTime.TotalSeconds) seconds"
         }
     }
