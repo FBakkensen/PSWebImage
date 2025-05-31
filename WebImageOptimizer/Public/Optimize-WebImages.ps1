@@ -255,6 +255,7 @@ function Optimize-WebImages {
                     OutputPath = $effectiveOutputPath
                     Settings = $mergedConfig.defaultSettings
                     ProcessingEngine = $processingEngine
+                    Configuration = $mergedConfig
                 }
 
                 # Add parallel processing settings if enabled

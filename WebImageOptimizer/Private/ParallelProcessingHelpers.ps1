@@ -362,6 +362,96 @@ function Invoke-SingleFileProcessing {
 
 <#
 .SYNOPSIS
+    Applies naming pattern to generate output file path based on configuration.
+
+.DESCRIPTION
+    Generates the appropriate output file path based on the overwriteOriginal setting
+    and naming pattern configuration. When overwriteOriginal is false, applies the
+    naming pattern to create a different filename.
+
+.PARAMETER InputPath
+    The original file path.
+
+.PARAMETER OutputDirectory
+    The base output directory.
+
+.PARAMETER Configuration
+    The configuration object containing output settings.
+
+.PARAMETER RelativePath
+    Optional relative path to preserve directory structure.
+
+.OUTPUTS
+    [string] The calculated output file path.
+
+.EXAMPLE
+    $outputPath = Get-OutputFilePath -InputPath "image.jpg" -OutputDirectory "C:\output" -Configuration $config
+#>
+function Get-OutputFilePath {
+    [CmdletBinding()]
+    [OutputType([string])]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$InputPath,
+
+        [Parameter(Mandatory = $true)]
+        [string]$OutputDirectory,
+
+        [Parameter(Mandatory = $true)]
+        [hashtable]$Configuration,
+
+        [Parameter(Mandatory = $false)]
+        [string]$RelativePath
+    )
+
+    $inputFile = Get-Item $InputPath
+    $fileName = $inputFile.BaseName
+    $extension = $inputFile.Extension.TrimStart('.')
+
+    # Determine if we should overwrite the original
+    $overwriteOriginal = $false
+    if ($Configuration.output -and $Configuration.output.ContainsKey('overwriteOriginal')) {
+        $overwriteOriginal = $Configuration.output.overwriteOriginal
+    }
+
+    # Generate the output filename
+    if ($overwriteOriginal) {
+        # Use original filename
+        $outputFileName = $inputFile.Name
+    } else {
+        # Apply naming pattern
+        $namingPattern = "{name}_optimized.{ext}"
+        if ($Configuration.output -and $Configuration.output.ContainsKey('namingPattern')) {
+            $namingPattern = $Configuration.output.namingPattern
+        }
+
+        # Replace placeholders in naming pattern
+        $outputFileName = $namingPattern -replace '\{name\}', $fileName -replace '\{ext\}', $extension
+    }
+
+    # Build the full output path
+    if ($RelativePath) {
+        # Preserve directory structure
+        $relativeDirPath = Split-Path $RelativePath -Parent
+        if ($relativeDirPath -and $relativeDirPath -ne '.') {
+            $outputDir = Join-Path $OutputDirectory $relativeDirPath
+            # Ensure the output directory exists
+            if (-not (Test-Path $outputDir)) {
+                New-Item -Path $outputDir -ItemType Directory -Force | Out-Null
+            }
+            $outputFilePath = Join-Path $outputDir $outputFileName
+        } else {
+            $outputFilePath = Join-Path $OutputDirectory $outputFileName
+        }
+    } else {
+        $outputFilePath = Join-Path $OutputDirectory $outputFileName
+    }
+
+    return $outputFilePath
+}
+
+<#
+.SYNOPSIS
     Updates processing progress and calculates progress metrics.
 
 .DESCRIPTION

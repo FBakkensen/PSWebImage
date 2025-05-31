@@ -37,6 +37,12 @@
     - EstimatedTimeRemaining: Estimated time to completion
     - ProcessingRate: Files processed per second
 
+.PARAMETER TestMode
+    Switch to enable test mode for validation and error simulation.
+
+.PARAMETER Configuration
+    Configuration object containing output settings for file naming and overwrite behavior.
+
 .OUTPUTS
     [PSCustomObject] Processing results including success/error counts, timing, and error details.
 
@@ -79,7 +85,10 @@ function Invoke-ParallelImageProcessing {
         [scriptblock]$ProgressCallback,
 
         [Parameter(Mandatory = $false)]
-        [switch]$TestMode
+        [switch]$TestMode,
+
+        [Parameter(Mandatory = $false)]
+        [hashtable]$Configuration = @{}
     )
 
     # Validate PowerShell 7 support
@@ -163,6 +172,7 @@ function Invoke-ParallelImageProcessing {
             $settings = $using:Settings
             $processingEngine = $using:ProcessingEngine
             $testMode = $using:TestMode
+            $configuration = $using:Configuration
             $errors = $using:errors
             $results = $using:results
             $progressTracker = $using:progressTracker
@@ -174,17 +184,8 @@ function Invoke-ParallelImageProcessing {
             $currentFile = $_
             $fileName = $currentFile.Name
 
-            # Use RelativePath if available to preserve directory structure
-            if ($currentFile.RelativePath) {
-                $outputFilePath = Join-Path $outputPath $currentFile.RelativePath
-                # Ensure the output directory exists
-                $outputDir = Split-Path $outputFilePath -Parent
-                if (-not (Test-Path $outputDir)) {
-                    New-Item -Path $outputDir -ItemType Directory -Force | Out-Null
-                }
-            } else {
-                $outputFilePath = Join-Path $outputPath $fileName
-            }
+            # Generate output file path using configuration settings
+            $outputFilePath = Get-OutputFilePath -InputPath $currentFile.FullName -OutputDirectory $outputPath -Configuration $configuration -RelativePath $currentFile.RelativePath
 
             try {
                 Write-Verbose "Processing $fileName in parallel thread"
