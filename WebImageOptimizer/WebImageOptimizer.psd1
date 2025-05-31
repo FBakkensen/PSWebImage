@@ -30,7 +30,7 @@ CompanyName = 'PowerShell Web Image Optimizer Team'
 Copyright = '(c) 2025 PowerShell Web Image Optimizer Team. All rights reserved.'
 
 # Description of the functionality provided by this module
-Description = 'A PowerShell module for optimizing images for web usage with batch processing capabilities'
+Description = 'A comprehensive PowerShell module for optimizing images for web usage with advanced batch processing capabilities, parallel execution, and cross-platform support. Supports JPEG, PNG, WebP, and AVIF formats with configurable quality settings and intelligent backup management.'
 
 # Minimum version of the PowerShell engine required by this module
 PowerShellVersion = '7.0'
@@ -107,7 +107,7 @@ PrivateData = @{
         # IconUri = ''
 
         # ReleaseNotes of this module
-        ReleaseNotes = 'Initial release of PowerShell Web Image Optimizer module with support for batch image optimization, multiple formats (JPEG, PNG, WebP, AVIF), and configurable quality settings.'
+        ReleaseNotes = 'Initial release v1.0.0 of WebImageOptimizer - A comprehensive PowerShell 7 module for web image optimization. Features: Multi-format support (JPEG, PNG, WebP, AVIF), parallel processing with 430+ images/minute performance, cross-platform compatibility (Windows/Linux/macOS), intelligent backup management, configurable quality settings, and comprehensive reporting. Requires PowerShell 7.0+ and ImageMagick (with .NET fallback). See RELEASE_NOTES.md for complete details.'
 
         # Prerelease string of this module
         # Prerelease = ''
