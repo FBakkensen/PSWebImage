@@ -1,11 +1,19 @@
 # Test suite for WebImageOptimizer Image File Discovery Engine (Task 5)
 # BDD/TDD implementation following Given-When-Then structure
 
+# Import test helper for path resolution
+$testHelperPath = Join-Path (Split-Path $PSScriptRoot -Parent) "TestHelpers\PathResolution.psm1"
+if (Test-Path $testHelperPath) {
+    Import-Module $testHelperPath -Force
+} else {
+    throw "Test helper module not found: $testHelperPath"
+}
+
 Describe "WebImageOptimizer Image File Discovery Engine" {
 
     BeforeAll {
         # Define the module root path - use absolute path for reliability in tests
-        $script:ModuleRoot = "D:\repos\PSWebImage"
+        $script:ModuleRoot = Get-ModuleRootPath
         $script:ModulePath = Join-Path $script:ModuleRoot "WebImageOptimizer"
         $script:PrivatePath = Join-Path $script:ModulePath "Private"
         $script:GetImageFilesPath = Join-Path $script:PrivatePath "Get-ImageFiles.ps1"

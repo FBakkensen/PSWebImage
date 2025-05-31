@@ -1,11 +1,19 @@
 # Test suite for WebImageOptimizer Dependency Detection System (Task 4)
 # BDD/TDD implementation following Given-When-Then structure
 
+# Import test helper for path resolution
+$testHelperPath = Join-Path (Split-Path $PSScriptRoot -Parent) "TestHelpers\PathResolution.psm1"
+if (Test-Path $testHelperPath) {
+    Import-Module $testHelperPath -Force
+} else {
+    throw "Test helper module not found: $testHelperPath"
+}
+
 Describe "WebImageOptimizer Dependency Detection System Foundation" {
 
     BeforeAll {
         # Define the module root path - use absolute path for reliability in tests
-        $script:ModuleRoot = "D:\repos\PSWebImage"
+        $script:ModuleRoot = Get-ModuleRootPath
         $script:ModulePath = Join-Path $script:ModuleRoot "WebImageOptimizer"
         $script:DependenciesPath = Join-Path $script:ModulePath "Dependencies"
         $script:CheckImageMagickPath = Join-Path $script:DependenciesPath "Check-ImageMagick.ps1"

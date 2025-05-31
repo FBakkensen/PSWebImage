@@ -1,22 +1,28 @@
 # Test suite for WebImageOptimizer Module Manifest Configuration (Task 2)
 # BDD/TDD implementation following Given-When-Then structure
 
-# Define the module root path
-$ModuleRoot = if ($PSScriptRoot) {
-    $PSScriptRoot | Split-Path | Split-Path  # Go up two levels from Tests\Unit to root
+# Import test helper for path resolution
+$testHelperPath = Join-Path (Split-Path $PSScriptRoot -Parent) "TestHelpers\PathResolution.psm1"
+if (Test-Path $testHelperPath) {
+    Import-Module $testHelperPath -Force
 } else {
-    "d:\repos\PSWebImage"  # Fallback for direct execution
+    throw "Test helper module not found: $testHelperPath"
 }
-$ModulePath = Join-Path $ModuleRoot "WebImageOptimizer"
-$ManifestPath = Join-Path $ModulePath "WebImageOptimizer.psd1"
 
 Describe "WebImageOptimizer Module Manifest Configuration" {
 
     BeforeAll {
+        # Define the module root path with robust resolution
+        $script:ModuleRoot = Get-ModuleRootPath
+
+        # Define all paths using the resolved module root
+        $script:ModulePath = Join-Path $script:ModuleRoot "WebImageOptimizer"
+        $script:ManifestPath = Join-Path $script:ModulePath "WebImageOptimizer.psd1"
+
         # Ensure we have the module manifest available for testing
         $script:ManifestData = $null
-        if (Test-Path $ManifestPath) {
-            $script:ManifestData = Test-ModuleManifest -Path $ManifestPath
+        if (Test-Path $script:ManifestPath) {
+            $script:ManifestData = Test-ModuleManifest -Path $script:ManifestPath
         }
     }
 
@@ -26,8 +32,8 @@ Describe "WebImageOptimizer Module Manifest Configuration" {
             # Given: A PowerShell module manifest file exists
             # When: Running Test-ModuleManifest validation
             # Then: The manifest should pass validation without errors
-            Test-Path $ManifestPath | Should -Be $true
-            { Test-ModuleManifest -Path $ManifestPath } | Should -Not -Throw
+            Test-Path $script:ManifestPath | Should -Be $true
+            { Test-ModuleManifest -Path $script:ManifestPath } | Should -Not -Throw
         }
 
         It "Should specify PowerShell version requirement of 7.0 or higher" {
@@ -110,7 +116,7 @@ Describe "WebImageOptimizer Module Manifest Configuration" {
             # When: Checking FunctionsToExport
             # Then: Should not use wildcard exports for production modules
             # Note: This test will initially fail and guide implementation
-            $manifestContent = Get-Content $ManifestPath -Raw
+            $manifestContent = Get-Content $script:ManifestPath -Raw
             $manifestContent | Should -Not -Match "FunctionsToExport\s*=\s*'\*'" -Because "Production modules should explicitly declare exported functions"
         }
 
@@ -118,7 +124,7 @@ Describe "WebImageOptimizer Module Manifest Configuration" {
             # Given: The module doesn't export cmdlets, only functions
             # When: Checking CmdletsToExport
             # Then: Should be an empty array or not use wildcards
-            $manifestContent = Get-Content $ManifestPath -Raw
+            $manifestContent = Get-Content $script:ManifestPath -Raw
             $manifestContent | Should -Not -Match "CmdletsToExport\s*=\s*'\*'" -Because "Module should explicitly declare cmdlet exports"
         }
 
@@ -126,7 +132,7 @@ Describe "WebImageOptimizer Module Manifest Configuration" {
             # Given: The module should not export variables by default
             # When: Checking VariablesToExport
             # Then: Should be an empty array or not use wildcards
-            $manifestContent = Get-Content $ManifestPath -Raw
+            $manifestContent = Get-Content $script:ManifestPath -Raw
             $manifestContent | Should -Not -Match "VariablesToExport\s*=\s*'\*'" -Because "Module should not export variables by default"
         }
 
@@ -134,7 +140,7 @@ Describe "WebImageOptimizer Module Manifest Configuration" {
             # Given: The module may not need to export aliases
             # When: Checking AliasesToExport
             # Then: Should be explicitly declared, not wildcarded
-            $manifestContent = Get-Content $ManifestPath -Raw
+            $manifestContent = Get-Content $script:ManifestPath -Raw
             $manifestContent | Should -Not -Match "AliasesToExport\s*=\s*'\*'" -Because "Module should explicitly declare alias exports"
         }
     }
@@ -145,7 +151,7 @@ Describe "WebImageOptimizer Module Manifest Configuration" {
             # Given: The module will be published to PowerShell Gallery
             # When: Checking PSData tags
             # Then: Should include relevant tags for image processing and web optimization
-            $manifestContent = Get-Content $ManifestPath -Raw
+            $manifestContent = Get-Content $script:ManifestPath -Raw
             $manifestContent | Should -Match "Tags\s*=\s*@\(" -Because "Module should have tags for gallery discovery"
 
             # Check for relevant tags in the content
@@ -156,7 +162,7 @@ Describe "WebImageOptimizer Module Manifest Configuration" {
             # Given: PowerShell Gallery modules should have project information
             # When: Checking ProjectUri
             # Then: Should be configured or prepared for configuration
-            $manifestContent = Get-Content $ManifestPath -Raw
+            $manifestContent = Get-Content $script:ManifestPath -Raw
             $manifestContent | Should -Match "ProjectUri\s*=" -Because "Module should have project URI configured"
         }
 
@@ -164,7 +170,7 @@ Describe "WebImageOptimizer Module Manifest Configuration" {
             # Given: PowerShell Gallery modules should specify licensing
             # When: Checking LicenseUri
             # Then: Should be configured or prepared for configuration
-            $manifestContent = Get-Content $ManifestPath -Raw
+            $manifestContent = Get-Content $script:ManifestPath -Raw
             $manifestContent | Should -Match "LicenseUri\s*=" -Because "Module should have license URI configured"
         }
     }
@@ -182,7 +188,7 @@ Describe "WebImageOptimizer Module Manifest Configuration" {
             }
 
             # Import and test
-            { Import-Module $ModulePath -Force } | Should -Not -Throw
+            { Import-Module $script:ModulePath -Force } | Should -Not -Throw
 
             $module = Get-Module -Name WebImageOptimizer
             $module | Should -Not -BeNull
@@ -204,7 +210,7 @@ Describe "WebImageOptimizer Module Manifest Configuration" {
                 Remove-Module WebImageOptimizer -Force
             }
 
-            Import-Module $ModulePath -Force
+            Import-Module $script:ModulePath -Force
             $loadedModule = Get-Module -Name WebImageOptimizer
 
             $loadedModule.Version | Should -Be $script:ManifestData.Version
@@ -217,6 +223,21 @@ Describe "WebImageOptimizer Module Manifest Configuration" {
 
 Describe "WebImageOptimizer Module Manifest PRD Compliance" {
 
+    BeforeAll {
+        # Define the module root path with robust resolution
+        $script:ModuleRoot = Get-ModuleRootPath
+
+        # Define all paths using the resolved module root
+        $script:ModulePath = Join-Path $script:ModuleRoot "WebImageOptimizer"
+        $script:ManifestPath = Join-Path $script:ModulePath "WebImageOptimizer.psd1"
+
+        # Ensure we have the module manifest available for testing
+        $script:ManifestData = $null
+        if (Test-Path $script:ManifestPath) {
+            $script:ManifestData = Test-ModuleManifest -Path $script:ManifestPath
+        }
+    }
+
     Context "When validating PRD specification requirements" {
 
         It "Should meet all PRD metadata requirements" {
@@ -224,7 +245,7 @@ Describe "WebImageOptimizer Module Manifest PRD Compliance" {
             # When: Validating against PRD requirements
             # Then: All requirements should be met
 
-            $manifestContent = Get-Content $ManifestPath -Raw
+            $manifestContent = Get-Content $script:ManifestPath -Raw
 
             # PowerShell 7.0+ requirement
             $manifestContent | Should -Match "PowerShellVersion\s*=\s*'7\.0'" -Because "PRD requires PowerShell 7.0+"

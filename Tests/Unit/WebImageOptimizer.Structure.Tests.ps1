@@ -1,20 +1,36 @@
-# Define the module root path
-$ModuleRoot = "d:\repos\PSWebImage"
-$ModulePath = Join-Path $ModuleRoot "WebImageOptimizer"
+# Test suite for WebImageOptimizer Module Structure
+# BDD/TDD implementation following Given-When-Then structure
+
+# Import test helper for path resolution
+$testHelperPath = Join-Path (Split-Path $PSScriptRoot -Parent) "TestHelpers\PathResolution.psm1"
+if (Test-Path $testHelperPath) {
+    Import-Module $testHelperPath -Force
+} else {
+    throw "Test helper module not found: $testHelperPath"
+}
 
 Describe "WebImageOptimizer Module Structure" {
+
+    BeforeAll {
+        # Define the module root path with robust resolution
+        $script:ModuleRoot = Get-ModuleRootPath
+
+        # Define all paths using the resolved module root
+        $script:ModulePath = Join-Path $script:ModuleRoot "WebImageOptimizer"
+    }
+
     Context "When setting up the module structure" {
         It "Should create the main module directory" {
             # Given: A PowerShell project workspace
             # When: The module structure is created
             # Then: The main WebImageOptimizer directory should exist
-            Test-Path $ModulePath | Should -Be $true
+            Test-Path $script:ModulePath | Should -Be $true
         }
           It "Should create the main module file (.psm1)" {
             # Given: The module directory exists
             # When: Basic module files are created
             # Then: The main module file should exist
-            $ModuleFile = Join-Path $ModulePath "WebImageOptimizer.psm1"
+            $ModuleFile = Join-Path $script:ModulePath "WebImageOptimizer.psm1"
             Test-Path $ModuleFile | Should -Be $true
         }
 
@@ -22,7 +38,7 @@ Describe "WebImageOptimizer Module Structure" {
             # Given: The module directory exists
             # When: Basic module files are created
             # Then: The module manifest file should exist
-            $ManifestFile = Join-Path $ModulePath "WebImageOptimizer.psd1"
+            $ManifestFile = Join-Path $script:ModulePath "WebImageOptimizer.psd1"
             Test-Path $ManifestFile | Should -Be $true
         }
 
@@ -30,7 +46,7 @@ Describe "WebImageOptimizer Module Structure" {
             # Given: The module directory exists
             # When: Directory structure is created
             # Then: The Private directory should exist
-            $PrivateDir = Join-Path $ModulePath "Private"
+            $PrivateDir = Join-Path $script:ModulePath "Private"
             Test-Path $PrivateDir | Should -Be $true
         }
 
@@ -38,7 +54,7 @@ Describe "WebImageOptimizer Module Structure" {
             # Given: The module directory exists
             # When: Directory structure is created
             # Then: The Public directory should exist
-            $PublicDir = Join-Path $ModulePath "Public"
+            $PublicDir = Join-Path $script:ModulePath "Public"
             Test-Path $PublicDir | Should -Be $true
         }
 
@@ -46,7 +62,7 @@ Describe "WebImageOptimizer Module Structure" {
             # Given: The module directory exists
             # When: Directory structure is created
             # Then: The Config directory should exist
-            $ConfigDir = Join-Path $ModulePath "Config"
+            $ConfigDir = Join-Path $script:ModulePath "Config"
             Test-Path $ConfigDir | Should -Be $true
         }
 
@@ -54,7 +70,7 @@ Describe "WebImageOptimizer Module Structure" {
             # Given: The module directory exists
             # When: Directory structure is created
             # Then: The Dependencies directory should exist
-            $DependenciesDir = Join-Path $ModulePath "Dependencies"
+            $DependenciesDir = Join-Path $script:ModulePath "Dependencies"
             Test-Path $DependenciesDir | Should -Be $true
         }
     }
@@ -64,7 +80,7 @@ Describe "WebImageOptimizer Module Structure" {
             # Given: The module manifest file exists
             # When: Testing the manifest structure
             # Then: Test-ModuleManifest should pass without errors
-            $ManifestFile = Join-Path $ModulePath "WebImageOptimizer.psd1"
+            $ManifestFile = Join-Path $script:ModulePath "WebImageOptimizer.psd1"
             if (Test-Path $ManifestFile) {
                 { Test-ModuleManifest -Path $ManifestFile } | Should -Not -Throw
             }
@@ -73,7 +89,7 @@ Describe "WebImageOptimizer Module Structure" {
             # Given: The main module file exists
             # When: Reading the module file content
             # Then: It should contain basic PowerShell module structure
-            $ModuleFile = Join-Path $ModulePath "WebImageOptimizer.psm1"
+            $ModuleFile = Join-Path $script:ModulePath "WebImageOptimizer.psm1"
             if (Test-Path $ModuleFile) {
                 $Content = Get-Content $ModuleFile -Raw
                 $Content | Should -Not -BeNullOrEmpty
@@ -88,7 +104,7 @@ Describe "WebImageOptimizer Module Structure" {
             # Given: The module structure is complete
             # When: Attempting to import the module
             # Then: Import-Module should succeed without throwing errors
-            $TestModulePath = Join-Path $ModuleRoot "WebImageOptimizer"
+            $TestModulePath = Join-Path $script:ModuleRoot "WebImageOptimizer"
             if (Test-Path $TestModulePath) {
                 { Import-Module $TestModulePath -Force } | Should -Not -Throw
 
@@ -102,6 +118,15 @@ Describe "WebImageOptimizer Module Structure" {
 }
 
 Describe "WebImageOptimizer Module Structure Compliance" {
+
+    BeforeAll {
+        # Define the module root path with robust resolution
+        $script:ModuleRoot = Get-ModuleRootPath
+
+        # Define all paths using the resolved module root
+        $script:ModulePath = Join-Path $script:ModuleRoot "WebImageOptimizer"
+    }
+
     Context "When validating PRD specification compliance" {
           BeforeAll {
             # Expected directory structure based on PRD
@@ -117,7 +142,7 @@ Describe "WebImageOptimizer Module Structure Compliance" {
                 "WebImageOptimizer.psd1"
             )
 
-            $script:TestModulePath = Join-Path "d:\repos\PSWebImage" "WebImageOptimizer"
+            $script:TestModulePath = Join-Path $script:ModuleRoot "WebImageOptimizer"
         }
           It "Should contain all required directories from PRD specification" {
             # Given: The PRD specifies a specific directory structure
