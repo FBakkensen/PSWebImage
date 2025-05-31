@@ -293,23 +293,13 @@ function Optimize-WebImages {
             # Step 8: Generate summary report
             Write-Verbose "Generating summary report"
             try {
-                if ($result.FilesProcessed -gt 0) {
-                    # Create processing results for reporting (simplified for main function)
-                    $reportResults = @(
-                        [PSCustomObject]@{
-                            FileName = "Summary"
-                            Success = $result.Success
-                            ProcessingTime = $result.ProcessingTime
-                            FilesProcessed = $result.FilesProcessed
-                            ErrorCount = $result.ErrorCount
-                        }
-                    )
-
-                    $summaryReport = Write-OptimizationReport -ProcessingResults $reportResults -OutputFormat 'Console'
+                if ($result.FilesProcessed -gt 0 -and $processingResult.Results) {
+                    # Use the actual detailed processing results for accurate reporting
+                    $summaryReport = Write-OptimizationReport -ProcessingResults $processingResult.Results -OutputFormat 'Console'
                     $result.Summary = $summaryReport
                 }
                 else {
-                    $result.Summary = "No files were processed"
+                    $result.Summary = "No image files found to process"
                 }
             }
             catch {

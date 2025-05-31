@@ -446,50 +446,113 @@ function Invoke-ImageMagickOptimization {
     try {
         Write-Verbose "Using ImageMagick for image optimization"
 
-        # For now, simulate ImageMagick processing by copying the file
-        # In a real implementation, this would call ImageMagick convert command
-        Copy-Item -Path $InputPath -Destination $OutputPath -Force
-
-        # Simulate optimization results based on input file
-        $result.Success = $true
-
-        # Try to extract dimensions from test file content first, then file name, then defaults
-        $width = 800
-        $height = 600
-
-        try {
-            # Check if this is a test file with embedded dimensions
-            $fileContent = Get-Content -Path $InputPath -TotalCount 10 -ErrorAction SilentlyContinue
-            if ($fileContent) {
-                $widthLine = $fileContent | Where-Object { $_ -match "^Width:\s*(\d+)" }
-                $heightLine = $fileContent | Where-Object { $_ -match "^Height:\s*(\d+)" }
-
-                if ($widthLine -and $heightLine) {
-                    if ($widthLine -match "^Width:\s*(\d+)") {
-                        $width = [int]$matches[1] # From width match
-                    }
-                    if ($heightLine -match "^Height:\s*(\d+)") {
-                        $height = [int]$matches[1] # From height match
-                    }
-                    Write-Verbose "Extracted dimensions from test file content: ${width}x${height}"
-                }
-                elseif ($InputPath -match "(\d+)x(\d+)") {
-                    # Try to extract from file name/path
-                    $width = [int]$matches[1]
-                    $height = [int]$matches[2]
-                    Write-Verbose "Extracted dimensions from file path: ${width}x${height}"
-                }
+        # Import dependency detection functions if not already available
+        if (-not (Get-Command Find-ImageMagickInstallation -ErrorAction SilentlyContinue)) {
+            $dependencyPath = Join-Path $PSScriptRoot "..\Dependencies\Check-ImageMagick.ps1"
+            if (Test-Path $dependencyPath) {
+                . $dependencyPath
             }
         }
-        catch {
-            Write-Verbose "Could not extract dimensions from file, using defaults"
+
+        # Find ImageMagick installation
+        $imageMagickInfo = Find-ImageMagickInstallation
+        if (-not $imageMagickInfo.Found) {
+            $result.ErrorMessage = "ImageMagick not found. Please install ImageMagick to use this processing engine."
+            Write-Error $result.ErrorMessage
+            return $result
         }
 
-        # Apply resizing if max dimensions are specified in settings
-        if ($Settings.processing -and $Settings.processing.maxDimensions) {
-            $maxWidth = $Settings.processing.maxDimensions.width
-            $maxHeight = $Settings.processing.maxDimensions.height
+        $magickPath = $imageMagickInfo.Path
+        Write-Verbose "Using ImageMagick at: $magickPath"
 
+        # Get input image information first
+        $identifyArgs = @($InputPath)
+        $identifyOutput = & $magickPath "identify" @identifyArgs 2>&1
+
+        if ($LASTEXITCODE -ne 0) {
+            $result.ErrorMessage = "Failed to identify input image: $identifyOutput"
+            Write-Error $result.ErrorMessage
+            return $result
+        }
+
+        # Parse dimensions from identify output (format: filename format widthxheight+0+0 ...)
+        if ($identifyOutput -match '(\d+)x(\d+)') {
+            $width = [int]$matches[1]
+            $height = [int]$matches[2]
+            Write-Verbose "Detected image dimensions: ${width}x${height}"
+        } else {
+            # Fallback dimensions if parsing fails
+            $width = 800
+            $height = 600
+            Write-Warning "Could not parse image dimensions, using defaults: ${width}x${height}"
+        }
+
+        # Build ImageMagick command arguments
+        $magickArgs = @()
+        $magickArgs += $InputPath
+
+        # Get input format for optimization
+        $inputFormat = [System.IO.Path]::GetExtension($InputPath).TrimStart('.').ToLower()
+
+        # Apply format-specific optimizations
+        switch ($inputFormat) {
+            { $_ -in @('jpg', 'jpeg') } {
+                # Apply JPEG quality (default 85 if not specified)
+                $quality = if ($FormatSettings -and $FormatSettings.quality) { $FormatSettings.quality } else { 85 }
+                $magickArgs += "-quality"
+                $magickArgs += $quality.ToString()
+                Write-Verbose "Applied JPEG quality: $quality"
+
+                # Apply progressive encoding (default true)
+                $progressive = if ($FormatSettings -and $FormatSettings.ContainsKey('progressive')) { $FormatSettings.progressive } else { $true }
+                if ($progressive) {
+                    $magickArgs += "-interlace"
+                    $magickArgs += "Plane"
+                    Write-Verbose "Applied progressive JPEG encoding"
+                }
+
+                # Apply metadata stripping (default true)
+                $stripMetadata = if ($FormatSettings -and $FormatSettings.ContainsKey('stripMetadata')) { $FormatSettings.stripMetadata } else { $true }
+                if ($stripMetadata) {
+                    $magickArgs += "-strip"
+                    Write-Verbose "Applied metadata stripping"
+                }
+
+                # Add JPEG optimization
+                $magickArgs += "-optimize"
+                Write-Verbose "Applied JPEG optimization"
+            }
+            'png' {
+                # Apply PNG compression (default 6)
+                $compression = if ($FormatSettings -and $FormatSettings.compression) { $FormatSettings.compression } else { 6 }
+                # PNG compression in ImageMagick: use -define png:compression-level=N (0-9)
+                $magickArgs += "-define"
+                $magickArgs += "png:compression-level=$compression"
+                Write-Verbose "Applied PNG compression level: $compression"
+
+                # Apply metadata stripping (default true)
+                $stripMetadata = if ($FormatSettings -and $FormatSettings.ContainsKey('stripMetadata')) { $FormatSettings.stripMetadata } else { $true }
+                if ($stripMetadata) {
+                    $magickArgs += "-strip"
+                    Write-Verbose "Applied metadata stripping"
+                }
+
+                # Add PNG optimization
+                $magickArgs += "-define"
+                $magickArgs += "png:compression-filter=5"
+                $magickArgs += "-define"
+                $magickArgs += "png:compression-strategy=1"
+                Write-Verbose "Applied PNG optimization filters"
+            }
+            default {
+                # For other formats, apply basic optimization
+                $magickArgs += "-optimize"
+                Write-Verbose "Applied basic optimization for format: $inputFormat"
+            }
+        }
+
+        # Apply resizing if maxDimensions are specified
+        if ($maxWidth -and $maxHeight) {
             if ($width -gt $maxWidth -or $height -gt $maxHeight) {
                 # Calculate aspect ratio preserving dimensions
                 $aspectRatio = $width / $height
@@ -504,10 +567,12 @@ function Invoke-ImageMagickOptimization {
                     $newWidth = [Math]::Round($maxHeight * $aspectRatio)
                 }
 
+                $magickArgs += "-resize"
+                $magickArgs += "${newWidth}x${newHeight}"
+                $result.WasResized = $true
                 $result.OutputWidth = $newWidth
                 $result.OutputHeight = $newHeight
-                $result.WasResized = $true
-                Write-Verbose "Resized image from ${width}x${height} to ${newWidth}x${newHeight}"
+                Write-Verbose "Will resize image from ${width}x${height} to ${newWidth}x${newHeight}"
             } else {
                 $result.OutputWidth = $width
                 $result.OutputHeight = $height
@@ -520,7 +585,23 @@ function Invoke-ImageMagickOptimization {
             $result.WasResized = $false
         }
 
-        Write-Verbose "ImageMagick optimization completed successfully"
+        # Add output path
+        $magickArgs += $OutputPath
+
+        # Execute ImageMagick command
+        Write-Verbose "Executing ImageMagick command: $magickPath $($magickArgs -join ' ')"
+        Write-Verbose "Command arguments array: $($magickArgs | ForEach-Object { "'$_'" } | Join-String -Separator ', ')"
+
+        # Execute with proper argument splatting
+        $magickOutput = & $magickPath @magickArgs 2>&1
+
+        if ($LASTEXITCODE -eq 0) {
+            $result.Success = $true
+            Write-Verbose "ImageMagick optimization completed successfully"
+        } else {
+            $result.ErrorMessage = "ImageMagick command failed with exit code $LASTEXITCODE : $magickOutput"
+            Write-Error $result.ErrorMessage
+        }
     }
     catch {
         $result.ErrorMessage = "ImageMagick optimization failed: $($_.Exception.Message)"
@@ -583,46 +664,33 @@ function Invoke-DotNetOptimization {
     try {
         Write-Verbose "Using .NET System.Drawing for image optimization"
 
-        # For now, simulate .NET processing by copying the file
-        # In a real implementation, this would use System.Drawing.Bitmap
-        Copy-Item -Path $InputPath -Destination $OutputPath -Force
-
-        # Simulate optimization results based on input file
-        $result.Success = $true
-
-        # Try to extract dimensions from test file content first, then file name, then defaults
-        $width = 640
-        $height = 480
-
+        # Load System.Drawing.Common assembly
         try {
-            # Check if this is a test file with embedded dimensions
-            $fileContent = Get-Content -Path $InputPath -TotalCount 10 -ErrorAction SilentlyContinue
-            if ($fileContent) {
-                $widthLine = $fileContent | Where-Object { $_ -match "^Width:\s*(\d+)" }
-                $heightLine = $fileContent | Where-Object { $_ -match "^Height:\s*(\d+)" }
-
-                if ($widthLine -and $heightLine) {
-                    if ($widthLine -match "^Width:\s*(\d+)") {
-                        $width = [int]$matches[1] # From width match
-                    }
-                    if ($heightLine -match "^Height:\s*(\d+)") {
-                        $height = [int]$matches[1] # From height match
-                    }
-                    Write-Verbose "Extracted dimensions from test file content: ${width}x${height}"
-                }
-                elseif ($InputPath -match "(\d+)x(\d+)") {
-                    # Try to extract from file name/path
-                    $width = [int]$matches[1]
-                    $height = [int]$matches[2]
-                    Write-Verbose "Extracted dimensions from file path: ${width}x${height}"
-                }
-            }
+            Add-Type -AssemblyName "System.Drawing.Common" -ErrorAction Stop
         }
         catch {
-            Write-Verbose "Could not extract dimensions from file, using defaults"
+            $result.ErrorMessage = "System.Drawing.Common not available: $($_.Exception.Message)"
+            Write-Error $result.ErrorMessage
+            return $result
         }
 
-        # Apply resizing if max dimensions are specified in settings
+        # Load the input image
+        $bitmap = $null
+        try {
+            $bitmap = [System.Drawing.Bitmap]::new($InputPath)
+            $width = $bitmap.Width
+            $height = $bitmap.Height
+            Write-Verbose "Loaded image with dimensions: ${width}x${height}"
+        }
+        catch {
+            $result.ErrorMessage = "Failed to load image: $($_.Exception.Message)"
+            Write-Error $result.ErrorMessage
+            return $result
+        }
+
+        # Determine if resizing is needed
+        $targetBitmap = $bitmap
+
         if ($Settings.processing -and $Settings.processing.maxDimensions) {
             $maxWidth = $Settings.processing.maxDimensions.width
             $maxHeight = $Settings.processing.maxDimensions.height
@@ -641,6 +709,17 @@ function Invoke-DotNetOptimization {
                     $newWidth = [Math]::Round($maxHeight * $aspectRatio)
                 }
 
+                # Create resized bitmap
+                $targetBitmap = [System.Drawing.Bitmap]::new($newWidth, $newHeight)
+                $graphics = [System.Drawing.Graphics]::FromImage($targetBitmap)
+                $graphics.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+                $graphics.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::HighQuality
+                $graphics.PixelOffsetMode = [System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
+                $graphics.CompositingQuality = [System.Drawing.Drawing2D.CompositingQuality]::HighQuality
+
+                $graphics.DrawImage($bitmap, 0, 0, $newWidth, $newHeight)
+                $graphics.Dispose()
+
                 $result.OutputWidth = $newWidth
                 $result.OutputHeight = $newHeight
                 $result.WasResized = $true
@@ -657,11 +736,47 @@ function Invoke-DotNetOptimization {
             $result.WasResized = $false
         }
 
+        # Save the image with format-specific settings
+        $inputFormat = [System.IO.Path]::GetExtension($InputPath).TrimStart('.').ToLower()
+
+        switch ($inputFormat) {
+            { $_ -in @('jpg', 'jpeg') } {
+                # Set up JPEG encoder parameters
+                $jpegCodec = [System.Drawing.Imaging.ImageCodecInfo]::GetImageEncoders() | Where-Object { $_.MimeType -eq "image/jpeg" }
+                $encoderParams = [System.Drawing.Imaging.EncoderParameters]::new(1)
+                $qualityParam = [System.Drawing.Imaging.EncoderParameter]::new([System.Drawing.Imaging.Encoder]::Quality, [long]($FormatSettings.quality ?? 85))
+                $encoderParams.Param[0] = $qualityParam
+
+                $targetBitmap.Save($OutputPath, $jpegCodec, $encoderParams)
+                Write-Verbose "Saved JPEG with quality: $($FormatSettings.quality ?? 85)"
+            }
+            'png' {
+                # PNG format
+                $targetBitmap.Save($OutputPath, [System.Drawing.Imaging.ImageFormat]::Png)
+                Write-Verbose "Saved PNG image"
+            }
+            default {
+                # Default format
+                $targetBitmap.Save($OutputPath)
+                Write-Verbose "Saved image in original format"
+            }
+        }
+
+        $result.Success = $true
         Write-Verbose ".NET optimization completed successfully"
     }
     catch {
         $result.ErrorMessage = ".NET optimization failed: $($_.Exception.Message)"
         Write-Error $result.ErrorMessage
+    }
+    finally {
+        # Clean up bitmap resources
+        if ($bitmap) {
+            $bitmap.Dispose()
+        }
+        if ($targetBitmap -and $targetBitmap -ne $bitmap) {
+            $targetBitmap.Dispose()
+        }
     }
 
     return $result

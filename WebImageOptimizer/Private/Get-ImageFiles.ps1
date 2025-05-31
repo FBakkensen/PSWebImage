@@ -23,6 +23,10 @@
 .PARAMETER ExcludePatterns
     Array of wildcard patterns to exclude. Files matching these patterns will be filtered out.
 
+.PARAMETER IncludeOptimized
+    When specified, includes already optimized files (those with '_optimized' in the name).
+    By default, optimized files are excluded to prevent duplicate processing.
+
 .PARAMETER SupportedFormats
     Array of supported image file extensions. Defaults to common web image formats.
 
@@ -40,6 +44,10 @@
 .EXAMPLE
     Get-ImageFiles -Path "C:\Images" -SupportedFormats @('.jpg', '.png', '.webp')
     Finds only JPEG, PNG, and WebP files.
+
+.EXAMPLE
+    Get-ImageFiles -Path "C:\Images" -IncludeOptimized
+    Finds all image files including previously optimized ones (with '_optimized' in the name).
 #>
 function Get-ImageFiles {
     [CmdletBinding()]
@@ -56,6 +64,9 @@ function Get-ImageFiles {
 
         [Parameter(Mandatory = $false)]
         [string[]]$ExcludePatterns,
+
+        [Parameter(Mandatory = $false)]
+        [switch]$IncludeOptimized,
 
         [Parameter(Mandatory = $false)]
         [string[]]$SupportedFormats = @('.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff', '.webp')
@@ -136,6 +147,19 @@ function Get-ImageFiles {
                     $IncludePatterns | Where-Object { $fileName -like $_ } | Select-Object -First 1
                 }
                 Write-Verbose "Found $($imageFiles.Count) image files after include pattern filtering"
+            }
+
+            # Exclude already optimized files by default (unless IncludeOptimized is specified)
+            if (-not $IncludeOptimized) {
+                $beforeOptimizedFilter = $imageFiles.Count
+                $imageFiles = $imageFiles | Where-Object {
+                    $_.Name -notlike "*_optimized*"
+                }
+                $excludedOptimized = $beforeOptimizedFilter - $imageFiles.Count
+                if ($excludedOptimized -gt 0) {
+                    Write-Verbose "Excluded $excludedOptimized already optimized files (use -IncludeOptimized to include them)"
+                }
+                Write-Verbose "Found $($imageFiles.Count) image files after excluding optimized files"
             }
 
             # Apply exclude patterns if specified (optimized with Where-Object)

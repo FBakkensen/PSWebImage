@@ -155,6 +155,24 @@ function Invoke-ParallelImageProcessing {
                 . $helpersPath
             }
 
+            # Import the image optimization function
+            $optimizationPath = Join-Path $privatePath "Invoke-ImageOptimization.ps1"
+            if (Test-Path $optimizationPath) {
+                . $optimizationPath
+            }
+
+            # Import dependency detection functions
+            $dependencyPath = Join-Path $privatePath "..\Dependencies\Check-ImageMagick.ps1"
+            if (Test-Path $dependencyPath) {
+                . $dependencyPath
+            }
+
+            # Import configuration functions
+            $configPath = Join-Path $privatePath "ConfigurationManager.ps1"
+            if (Test-Path $configPath) {
+                . $configPath
+            }
+
             # Initialize parallel processing context
             $initResult = Initialize-ParallelProcessingContext -PrivatePath $privatePath
             if (-not $initResult.Success) {
