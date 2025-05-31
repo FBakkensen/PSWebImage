@@ -118,10 +118,10 @@ function New-BackupTestFiles {
         $fileInfo = Get-Item -Path $filePath
         $metadata = @{
             OriginalPath = $filePath
-            RelativePath = if ($spec.SubDirectory) { 
-                Join-Path $spec.SubDirectory $spec.Name 
-            } else { 
-                $spec.Name 
+            RelativePath = if ($spec.SubDirectory) {
+                Join-Path $spec.SubDirectory $spec.Name
+            } else {
+                $spec.Name
             }
             Name = $spec.Name
             Size = $fileInfo.Length
@@ -302,25 +302,25 @@ function New-BackupScenarios {
     # Create each scenario
     foreach ($scenarioName in $scenarios.Keys) {
         $scenario = $scenarios[$scenarioName]
-        
+
         # Create scenario directory
         New-Item -Path $scenario.Path -ItemType Directory -Force | Out-Null
-        
+
         # Create files if specified
         if ($scenario.Files) {
             foreach ($fileName in $scenario.Files) {
                 $filePath = Join-Path $scenario.Path $fileName
                 $content = "TEST_CONTENT_FOR_$($scenarioName.ToUpper())_$($fileName.ToUpper())"
-                
+
                 # Make large files actually large for performance testing
                 if ($scenarioName -eq "LargeFiles") {
                     $content = $content.PadRight(50000, 'X')  # ~50KB files
                 }
-                
+
                 Set-Content -Path $filePath -Value $content -Encoding UTF8
             }
         }
-        
+
         # Update scenario with created file information
         if ($scenario.Files) {
             $scenario.CreatedFiles = $scenario.Files | ForEach-Object {
@@ -359,12 +359,20 @@ function Remove-BackupTestData {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]
-        [string]$TestRootPath
+        [string]$TestRootPath,
+
+        [Parameter(Mandatory = $false)]
+        [string[]]$AdditionalBackupPaths,
+
+        [Parameter(Mandatory = $false)]
+        [switch]$Force
     )
 
     Write-Verbose "Cleaning up backup test data from: $TestRootPath"
+    $cleanupErrors = @()
 
     try {
+        # Clean up main test directory
         if (Test-Path -Path $TestRootPath) {
             Remove-Item -Path $TestRootPath -Recurse -Force -ErrorAction Stop
             Write-Verbose "Successfully removed test data directory: $TestRootPath"
@@ -373,7 +381,106 @@ function Remove-BackupTestData {
         }
     }
     catch {
-        Write-Warning "Failed to remove test data directory '$TestRootPath': $($_.Exception.Message)"
-        throw
+        $cleanupErrors += "Failed to remove test data directory '$TestRootPath': $($_.Exception.Message)"
+        Write-Warning $cleanupErrors[-1]
+    }
+
+    # Clean up backup directories that might have been created outside the test root
+    $backupPathsToCheck = @()
+
+    # Add explicitly provided backup paths
+    if ($AdditionalBackupPaths) {
+        $backupPathsToCheck += $AdditionalBackupPaths
+    }
+
+    # Check for backup directories in common locations
+    $commonBackupLocations = @(
+        "backup",  # Default backup directory in current working directory
+        (Join-Path (Get-Location) "backup"),  # Explicit path to backup in current directory
+        (Join-Path $env:TEMP "backup")  # Backup in temp directory
+    )
+
+    foreach ($backupLocation in $commonBackupLocations) {
+        if (Test-Path $backupLocation) {
+            $backupPathsToCheck += $backupLocation
+        }
+    }
+
+    # Clean up backup directories
+    foreach ($backupPath in $backupPathsToCheck) {
+        try {
+            if (Test-Path $backupPath) {
+                Write-Verbose "Checking backup directory for test-related backups: $backupPath"
+
+                # Look for backup directories created during test runs (backup_YYYYMMDD_HHMMSS pattern)
+                $testBackupDirs = Get-ChildItem -Path $backupPath -Directory -ErrorAction SilentlyContinue |
+                    Where-Object { $_.Name -match '^backup_\d{8}_\d{6}$' -and $_.CreationTime -gt (Get-Date).AddHours(-2) }
+
+                foreach ($testBackupDir in $testBackupDirs) {
+                    try {
+                        Write-Verbose "Removing test backup directory: $($testBackupDir.FullName)"
+
+                        # Handle file locks and permission issues gracefully
+                        $retryCount = 0
+                        $maxRetries = 3
+                        $removed = $false
+
+                        while (-not $removed -and $retryCount -lt $maxRetries) {
+                            try {
+                                Remove-Item -Path $testBackupDir.FullName -Recurse -Force -ErrorAction Stop
+                                $removed = $true
+                                Write-Verbose "Successfully removed test backup directory: $($testBackupDir.FullName)"
+                            }
+                            catch {
+                                $retryCount++
+                                if ($retryCount -lt $maxRetries) {
+                                    Write-Verbose "Retry $retryCount/$maxRetries for removing $($testBackupDir.FullName)"
+                                    Start-Sleep -Milliseconds 500
+                                } else {
+                                    throw
+                                }
+                            }
+                        }
+                    }
+                    catch {
+                        $cleanupErrors += "Failed to remove test backup directory '$($testBackupDir.FullName)': $($_.Exception.Message)"
+                        Write-Warning $cleanupErrors[-1]
+                    }
+                }
+
+                # If backup directory is empty after cleanup, remove it
+                try {
+                    $remainingItems = Get-ChildItem -Path $backupPath -ErrorAction SilentlyContinue
+                    if (-not $remainingItems) {
+                        Write-Verbose "Removing empty backup directory: $backupPath"
+                        Remove-Item -Path $backupPath -Force -ErrorAction Stop
+                        Write-Verbose "Successfully removed empty backup directory: $backupPath"
+                    }
+                }
+                catch {
+                    # Don't treat this as an error since the directory might be used by other processes
+                    Write-Verbose "Could not remove backup directory (may not be empty or in use): $backupPath"
+                }
+            }
+        }
+        catch {
+            $cleanupErrors += "Failed to process backup directory '$backupPath': $($_.Exception.Message)"
+            Write-Warning $cleanupErrors[-1]
+        }
+    }
+
+    # Report cleanup summary and handle errors
+    if ($cleanupErrors.Count -gt 0) {
+        $errorMessage = "Cleanup completed with $($cleanupErrors.Count) errors. Some temporary files may remain."
+        Write-Warning $errorMessage
+
+        if ($Force) {
+            # Don't throw when Force is specified to avoid failing tests
+            Write-Verbose "Force parameter specified, continuing despite cleanup errors."
+        } else {
+            throw $errorMessage
+        }
+    } else {
+        Write-Verbose "Cleanup completed successfully with no errors."
     }
 }

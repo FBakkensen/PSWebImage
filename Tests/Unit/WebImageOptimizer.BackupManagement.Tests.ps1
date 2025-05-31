@@ -42,10 +42,10 @@ Describe "WebImageOptimizer Backup and File Management System" {
     }
 
     AfterAll {
-        # Cleanup test data
-        if ($script:TestRoot -and (Test-Path $script:TestRoot)) {
+        # Cleanup test data using the improved cleanup function
+        if ($script:TestRoot) {
             try {
-                Remove-Item -Path $script:TestRoot -Recurse -Force -ErrorAction SilentlyContinue
+                Remove-BackupTestData -TestRootPath $script:TestRoot -Force
                 Write-Host "Cleaned up test directory: $script:TestRoot" -ForegroundColor Green
             }
             catch {
